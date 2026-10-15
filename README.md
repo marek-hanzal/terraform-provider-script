@@ -6,10 +6,12 @@ ordering, rollback, or automatic retry. The program owns idempotency and any
 external data lifecycle. A changed artifact or explicit environment causes a new
 invocation during apply.
 
-The source is currently local-only. Version `0.1.0` installs as
-`registry.terraform.io/marek-hanzal/script` through a filesystem mirror; this address
-does not imply a registry or GitHub release. Keep a protected copy of this repository
-until it has a remote. Consumers pin a clean source commit and binary digests.
+The source is hosted at
+[github.com/marek-hanzal/terraform-provider-script](https://github.com/marek-hanzal/terraform-provider-script).
+Version `0.1.0` installs as `registry.terraform.io/marek-hanzal/script` through a
+filesystem mirror; there is no Terraform Registry release. Consumers pin a clean
+source commit and binary digests. The provider has no application-specific inputs
+and can be shared by independent Terraform projects.
 
 ```hcl
 terraform {
