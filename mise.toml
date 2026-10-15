@@ -1,0 +1,16 @@
+[tools]
+go = "1.27.2"
+terraform = "1.16.5"
+node = "24.19.0"
+
+[env]
+GOTOOLCHAIN = "local"
+
+[tasks.test]
+run = "go test -race ./..."
+
+[tasks.vet]
+run = "go vet ./..."
+
+[tasks.crossbuild]
+run = "make crossbuild"
