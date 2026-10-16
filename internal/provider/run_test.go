@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestExecute(t *testing.T) {
-	node, err := exec.LookPath("node")
+	node, err := testNode()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +50,7 @@ func TestExecute(t *testing.T) {
 				cancel()
 			}
 			started := time.Now()
-			err := execute(ctx, node, script, hash, directory, []string{"INPUT=safe input"}, scenario.timeout)
+			_, err := invoke(ctx, invocation{Node: node, Script: script, SHA256: hash, Directory: directory, Environment: map[string]string{"INPUT": "safe input"}, Timeout: scenario.timeout})
 			if scenario.failure == "" {
 				if err != nil {
 					t.Fatal(err)
@@ -83,7 +82,7 @@ func TestOptionalEnvironment(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "parent-secret")
-	node, err := exec.LookPath("node")
+	node, err := testNode()
 	if err != nil {
 		t.Fatal(err)
 	}

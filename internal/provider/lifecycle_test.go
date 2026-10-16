@@ -4,38 +4,18 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
 
 // Real local Terraform protects framework plan/state wiring, including environment-only updates.
 func TestTerraformLifecycle(t *testing.T) {
-	directory := t.TempDir()
-	version := "0.1.0"
-	mirror := filepath.Join(directory, "mirror")
-	binary := filepath.Join(mirror, "registry.terraform.io", "marek-hanzal", "script", version, runtime.GOOS+"_"+runtime.GOARCH, "terraform-provider-script_v"+version)
-	if runtime.GOOS == "windows" {
-		binary += ".exe"
-	}
-	if err := os.MkdirAll(filepath.Dir(binary), 0700); err != nil {
-		t.Fatal(err)
-	}
-	build := exec.Command("go", "build", "-o", binary, "../..")
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build: %v\n%s", err, output)
-	}
-	write := func(name, value string) {
-		t.Helper()
-		if err := os.WriteFile(filepath.Join(directory, name), []byte(value), 0600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	write("terraform.rc", fmt.Sprintf(`provider_installation { filesystem_mirror { path = %q } }`, filepath.ToSlash(mirror)))
+	f := newTerraformFixture(t)
+	directory := f.directory
+	write := f.write
 	write("main.tf", `terraform {
- required_providers { script = { source = "marek-hanzal/script", version = "0.1.0" } }
+ required_providers { script = { source = "marek-hanzal/script", version = "= 0.2.0" } }
 }
 variable "input" { type = string }
 variable "sha256" { type = string }
@@ -57,31 +37,11 @@ resource "script_run" "downstream" {
 	source := `import {appendFileSync} from 'node:fs'; appendFileSync('calls', process.env.INPUT + '\n');`
 	write("program.mjs", source)
 	plannedHash := fmt.Sprintf("%x", sha256.Sum256([]byte(source)))
+	f.env = append(f.env, "TF_VAR_input=one", "TF_VAR_sha256="+plannedHash)
 	run := func(want int, args ...string) string {
 		t.Helper()
-		command := exec.Command("terraform", args...)
-		command.Dir = directory
-		env := make([]string, 0)
-		for _, value := range os.Environ() {
-			key := strings.SplitN(value, "=", 2)[0]
-			if !strings.HasPrefix(key, "TF_") {
-				env = append(env, value)
-			}
-		}
-		command.Env = append(env, "TF_CLI_CONFIG_FILE="+filepath.Join(directory, "terraform.rc"), "TF_INPUT=0", "TF_VAR_input=one", "TF_VAR_sha256="+plannedHash)
-		output, err := command.CombinedOutput()
-		status := 0
-		if err != nil {
-			exit, ok := err.(*exec.ExitError)
-			if !ok {
-				t.Fatal(err)
-			}
-			status = exit.ExitCode()
-		}
-		if status != want {
-			t.Fatalf("terraform %v: status %d wanted %d\n%s", args, status, want, output)
-		}
-		return string(output)
+		f.env[len(f.env)-1] = "TF_VAR_sha256=" + plannedHash
+		return f.run(want, args...)
 	}
 	calls := func(want string) {
 		t.Helper()

@@ -14,3 +14,6 @@ run = "go vet ./..."
 
 [tasks.crossbuild]
 run = "make crossbuild"
+
+[tasks.release]
+run = "make release"

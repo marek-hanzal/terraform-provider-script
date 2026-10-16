@@ -56,10 +56,13 @@ func (p *scriptProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 	resp.ResourceData = absolute
+	resp.DataSourceData = absolute
 }
 
 func (p *scriptProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{func() resource.Resource { return &runResource{} }}
 }
 
-func (p *scriptProvider) DataSources(_ context.Context) []func() datasource.DataSource { return nil }
+func (p *scriptProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{func() datasource.DataSource { return &outputDataSource{} }}
+}
